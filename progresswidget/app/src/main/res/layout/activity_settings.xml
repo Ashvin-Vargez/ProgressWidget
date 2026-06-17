@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PROGRESS WIDGET"
+            android:textColor="#ffffff"
+            android:textSize="20sp"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Settings"
+            android:textColor="#777777"
+            android:textSize="13sp"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Wake Time -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="WAKE TIME"
+            android:textColor="#777777"
+            android:textSize="11sp"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="12dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:text="Hour"
+                android:textColor="#aaaaaa"
+                android:textSize="13sp"/>
+
+            <SeekBar
+                android:id="@+id/wake_hour_seek"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="23"
+                android:progress="7"
+                android:thumbTint="#e24b4a"
+                android:progressTint="#e24b4a"/>
+
+            <TextView
+                android:id="@+id/wake_hour_val"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="07"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                android:gravity="end"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="32dp">
+
+            <TextView
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:text="Minute"
+                android:textColor="#aaaaaa"
+                android:textSize="13sp"/>
+
+            <SeekBar
+                android:id="@+id/wake_min_seek"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="59"
+                android:progress="0"
+                android:thumbTint="#e24b4a"
+                android:progressTint="#e24b4a"/>
+
+            <TextView
+                android:id="@+id/wake_min_val"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="00"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                android:gravity="end"/>
+        </LinearLayout>
+
+        <!-- Sleep Time -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SLEEP TIME"
+            android:textColor="#777777"
+            android:textSize="11sp"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="12dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:text="Hour"
+                android:textColor="#aaaaaa"
+                android:textSize="13sp"/>
+
+            <SeekBar
+                android:id="@+id/sleep_hour_seek"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="23"
+                android:progress="23"
+                android:thumbTint="#e24b4a"
+                android:progressTint="#e24b4a"/>
+
+            <TextView
+                android:id="@+id/sleep_hour_val"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="23"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                android:gravity="end"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="40dp">
+
+            <TextView
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:text="Minute"
+                android:textColor="#aaaaaa"
+                android:textSize="13sp"/>
+
+            <SeekBar
+                android:id="@+id/sleep_min_seek"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="59"
+                android:progress="0"
+                android:thumbTint="#e24b4a"
+                android:progressTint="#e24b4a"/>
+
+            <TextView
+                android:id="@+id/sleep_min_val"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="00"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                android:gravity="end"/>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/save_button"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="SAVE &amp; UPDATE WIDGET"
+            android:textColor="#ffffff"
+            android:backgroundTint="#e24b4a"
+            android:textSize="13sp"
+            android:letterSpacing="0.1"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="The widget updates every minute. Changes take effect immediately after saving."
+            android:textColor="#555555"
+            android:textSize="11sp"
+            android:layout_marginTop="16dp"/>
+
+    </LinearLayout>
+</ScrollView>
