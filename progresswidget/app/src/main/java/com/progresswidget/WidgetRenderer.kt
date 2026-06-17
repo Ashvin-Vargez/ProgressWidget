@@ -6,7 +6,7 @@ import kotlin.math.*
 
 object WidgetRenderer {
 
-    private val COLOR_BG = Color.parseColor("#000000")
+    private val COLOR_TRANSPARENT = Color.TRANSPARENT
     private val COLOR_CARD = Color.parseColor("#141414")
     private val COLOR_DOT_LAND = Color.parseColor("#E8E8E8")
     private val COLOR_DOT_OCEAN = Color.parseColor("#3A3A3A")
@@ -21,8 +21,7 @@ object WidgetRenderer {
     private val COLOR_PAST_DATE = Color.parseColor("#444444")
 
     fun render(
-        widthPx: Int,
-        heightPx: Int,
+        widthPx: Int, heightPx: Int,
         wakeH: Int, wakeM: Int,
         sleepH: Int, sleepM: Int,
         pulsePhase: Float
@@ -47,10 +46,9 @@ object WidgetRenderer {
         val sleepMins = sleepH * 60 + sleepM
         val totalAwakeMins = (sleepMins - wakeMins).coerceAtLeast(1)
 
-        // FIX: handle before-wake and after-sleep states
         val dayElapsed: Float = when {
-            nowMins < wakeMins -> 0f          // before wake: globe fully lit
-            nowMins >= sleepMins -> 1f        // after sleep: globe fully dark
+            nowMins < wakeMins -> 0f
+            nowMins >= sleepMins -> 1f
             else -> (nowMins - wakeMins).toFloat() / totalAwakeMins
         }
         val dayPctRemaining = ((1f - dayElapsed) * 100f).toInt().coerceIn(0, 100)
@@ -66,25 +64,20 @@ object WidgetRenderer {
         val yearElapsed = dayOfYear.toFloat() / maxDayOfYear
         val yearPctRemaining = ((1f - yearElapsed) * 100f).toInt().coerceIn(0, 100)
 
-        // FIX: no outer padding — cards go edge to edge, only gaps between them
-        val gap = (minOf(widthPx, heightPx) * 0.025f)
+        // Layout — transparent background, separate cards
+        val gap = minOf(widthPx, heightPx) * 0.025f
         val cornerR = gap * 1.6f
 
-        // Globe card: left ~39% of width, full height
+        // Globe card: left ~39%, full height
         val globeCardW = widthPx * 0.39f
         val globeCardH = heightPx.toFloat()
-        val globeCardL = 0f
-        val globeCardT = 0f
 
-        // Right column starts after globe card + gap
+        // Right column
         val rightL = globeCardW + gap
         val rightW = widthPx - rightL
 
-        // Week bar: top of right column, ~28% of height
+        // Week card: top of right column, ~29% height
         val weekCardH = heightPx * 0.29f
-        val weekCardT = 0f
-        val weekCardL = rightL
-        val weekCardW = rightW
 
         // Bottom two squares
         val squareT = weekCardH + gap
@@ -93,14 +86,19 @@ object WidgetRenderer {
         val calCardL = rightL
         val yearCardL = rightL + squareW + gap
 
-        // Draw transparent background
-        canvas.drawColor(Color.TRANSPARENT)
+        // Fully transparent widget background
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
 
-        // Globe card
-        drawCard(canvas, paint, globeCardL, globeCardT, globeCardW, globeCardH, cornerR)
+        // Draw each card separately
+        drawCard(canvas, paint, 0f, 0f, globeCardW, globeCardH, cornerR)
+        drawCard(canvas, paint, rightL, 0f, rightW, weekCardH, cornerR)
+        drawCard(canvas, paint, calCardL, squareT, squareW, squareH, cornerR)
+        drawCard(canvas, paint, yearCardL, squareT, squareW, squareH, cornerR)
+
+        // Globe content
         drawGlobe(canvas, paint,
-            globeCardL + globeCardW / 2f,
-            globeCardT + globeCardH * 0.44f,
+            globeCardW / 2f,
+            globeCardH * 0.44f,
             minOf(globeCardW, globeCardH) * 0.42f,
             dayElapsed, pulsePhase)
 
@@ -108,23 +106,18 @@ object WidgetRenderer {
         paint.textSize = heightPx * 0.065f
         paint.textAlign = Paint.Align.CENTER
         paint.typeface = Typeface.MONOSPACE
-        canvas.drawText("$dayPctRemaining%", globeCardL + globeCardW / 2f,
-            globeCardT + globeCardH * 0.87f, paint)
+        canvas.drawText("$dayPctRemaining%", globeCardW / 2f, globeCardH * 0.87f, paint)
         paint.textSize = heightPx * 0.052f
-        canvas.drawText("AWAKE", globeCardL + globeCardW / 2f,
-            globeCardT + globeCardH * 0.95f, paint)
+        canvas.drawText("AWAKE", globeCardW / 2f, globeCardH * 0.95f, paint)
 
-        // Week card
-        drawCard(canvas, paint, weekCardL, weekCardT, weekCardW, weekCardH, cornerR)
-
+        // Week card content
         paint.color = COLOR_LABEL
         paint.textSize = heightPx * 0.07f
         paint.textAlign = Paint.Align.LEFT
-        canvas.drawText("W$weekOfYear", weekCardL + gap, weekCardT + weekCardH * 0.36f, paint)
+        canvas.drawText("W$weekOfYear", rightL + gap, weekCardH * 0.38f, paint)
         paint.textAlign = Paint.Align.RIGHT
         paint.color = COLOR_WHITE
-        canvas.drawText("$weekPctRemaining%", weekCardL + weekCardW - gap,
-            weekCardT + weekCardH * 0.36f, paint)
+        canvas.drawText("$weekPctRemaining%", rightL + rightW - gap, weekCardH * 0.38f, paint)
 
         val weekStr = "MONTUEWEDTHUFRISATSUN"
         val wDotR = weekCardH * 0.060f
@@ -132,16 +125,15 @@ object WidgetRenderer {
         val wStepY = weekCardH * 0.098f
         val wCharGap = weekCardH * 0.050f
         val wBarW = DotFont.measureWidth(weekStr, wDotR, wStepX, wCharGap)
-        val wScale = (weekCardW - gap * 2) / wBarW
+        val wScale = (rightW - gap * 2) / wBarW
         val wDotRs = wDotR * wScale
         val wStepXs = wStepX * wScale
         val wStepYs = wStepY * wScale
         val wCharGaps = wCharGap * wScale
-        val wBarX = weekCardL + gap
-        val wBarY = weekCardT + weekCardH * 0.50f
         val charElapsed = weekElapsed * 21f
 
-        DotFont.draw(canvas, weekStr, wBarX, wBarY, wDotRs, wStepXs, wStepYs, wCharGaps, paint) { ci, globalDot ->
+        DotFont.draw(canvas, weekStr, rightL + gap, weekCardH * 0.50f,
+            wDotRs, wStepXs, wStepYs, wCharGaps, paint) { ci, globalDot ->
             val dotProgress = ci.toFloat() + (globalDot - ci)
             when {
                 dotProgress < charElapsed - 0.5f -> COLOR_DIM
@@ -150,20 +142,19 @@ object WidgetRenderer {
             }
         }
 
-        // Calendar card
-        drawCard(canvas, paint, calCardL, squareT, squareW, squareH, cornerR)
+        // Calendar content
         drawCalendar(canvas, paint, calCardL, squareT, squareW, squareH, gap,
             dayOfMonth, month, maxDay, monthPctRemaining)
 
-        // Year card
-        drawCard(canvas, paint, yearCardL, squareT, squareW, squareH, cornerR)
+        // Year content
         drawYearBar(canvas, paint, yearCardL, squareT, squareW, squareH, gap,
             yearPctRemaining, yearElapsed)
 
         return bmp
     }
 
-    private fun drawCard(canvas: Canvas, paint: Paint, l: Float, t: Float, w: Float, h: Float, r: Float) {
+    private fun drawCard(canvas: Canvas, paint: Paint,
+                         l: Float, t: Float, w: Float, h: Float, r: Float) {
         paint.color = COLOR_CARD
         paint.style = Paint.Style.FILL
         canvas.drawRoundRect(l, t, l + w, t + h, r, r, paint)
@@ -174,33 +165,21 @@ object WidgetRenderer {
         cx: Float, cy: Float, R: Float,
         dayElapsed: Float, pulsePhase: Float
     ) {
-        // FIX: shadow sweeps LEFT to RIGHT correctly.
-        // dayElapsed=0 (just woke) → shadow fully OFF to the LEFT (globe lit)
-        // dayElapsed=1 (bedtime)   → shadow fully covers globe from the LEFT
+        // KEY FIX: use a very large shadow radius so the terminator sweep is
+        // nearly linear across the globe diameter.
+        // With shadowR >> R, the shadow circle's edge is almost a straight vertical line,
+        // and moving its center by 2R moves the terminator across the full globe width.
+        // At dayElapsed=0.5 the terminator should be exactly at the globe center.
         //
-        // Shadow circle center starts far LEFT (off-screen), sweeps RIGHT across globe.
-        // When shadowCx is far left of globe, the shadow circle (radius shadowR >> R)
-        // covers the LEFT portion of the globe.
-        // At elapsed=0: shadowCx = cx - R - shadowR*2  → no overlap, globe fully lit
-        // At elapsed=1: shadowCx = cx + R + shadowR*2  → full overlap, globe fully dark
+        // shadowCx at elapsed=0: cx - R      (right edge of shadow at left edge of globe = no shadow)
+        // shadowCx at elapsed=1: cx + R      (right edge of shadow at right edge of globe = fully dark)
+        // shadowCx = cx - R + dayElapsed * 2R = cx + R*(2*dayElapsed - 1)
         //
-        // BUT the terminator arc should face RIGHT (like letter D) meaning:
-        // the dark half is on the LEFT, lit half on the RIGHT.
-        // Shadow circle covers LEFT side → its RIGHT edge is the terminator (faces right ✓)
+        // A dot at px is in shadow if: px < shadowCx (using the flat-line approximation)
+        // For a proper curved terminator we still use the large circle, just with shadowR = 8*R
 
-        val shadowR = R * 1.10f
-        // At elapsed=0: center far right of globe (shadow doesn't touch globe from left)
-        // Wait — to make left side dark: shadow center must be on the LEFT
-        // shadow covers pts where dist(pt, shadowCx) < shadowR
-        // If shadowCx is far LEFT, the right edge of shadow sweeps across globe left→right
-        // At elapsed=0: no shadow = shadowCx far LEFT such that globe is outside shadow
-        //   → shadowCx = cx - R - shadowR  (just touching left edge, no overlap)
-        // At elapsed=1: full shadow = shadowCx moved right until globe fully inside
-        //   → shadowCx = cx + R + shadowR  (shadow fully covers globe)
-        // So shadowCx moves from (cx - R - shadowR) [lit] to (cx + R + shadowR) [dark]
-        // The terminator arc (right edge of shadow circle) faces RIGHT = letter D ✓
-
-        val shadowCx = (cx - R - shadowR) + dayElapsed * (2f * R + 2f * shadowR)
+        val shadowR = R * 8f   // very large → terminator is nearly a straight vertical line
+        val shadowCx = cx + R * (2f * dayElapsed - 1f)
         val shadowCy = cy
 
         paint.style = Paint.Style.FILL
@@ -217,14 +196,16 @@ object WidgetRenderer {
                 dot.isLand -> COLOR_DOT_LAND
                 else -> COLOR_DOT_OCEAN
             }
-            val dotR = R * 0.038f
-            canvas.drawCircle(px, py, dotR, paint)
+            canvas.drawCircle(px, py, R * 0.038f, paint)
         }
 
-        // Red terminator arc: right edge of shadow circle, clipped to globe
-        // Collect arc points sorted top→bottom for progressive fill pulse
+        // Red terminator arc: the visible part of the shadow circle boundary inside the globe.
+        // With large shadowR the arc is a gentle curve (nearly vertical, bowing slightly right)
+        // exactly like the 'D' shape you described.
+        // Collect points along shadow circle boundary that fall inside globe circle,
+        // sorted top-to-bottom for the progressive pulse fill.
         val arcPoints = mutableListOf<Pair<Float, Float>>()
-        var angle = -90.0  // start from top
+        var angle = -90.0
         while (angle < 270.0) {
             val rad = Math.toRadians(angle)
             val tx = shadowCx + shadowR * cos(rad).toFloat()
@@ -233,7 +214,7 @@ object WidgetRenderer {
             if (dx * dx + dy * dy <= R * R) {
                 arcPoints.add(Pair(tx, ty))
             }
-            angle += 2.5
+            angle += 1.5
         }
 
         val fillCount = (arcPoints.size * pulsePhase).toInt()
@@ -252,7 +233,6 @@ object WidgetRenderer {
         val monthNames = arrayOf("JAN","FEB","MAR","APR","MAY","JUN",
             "JUL","AUG","SEP","OCT","NOV","DEC")
 
-        // FIX: month label much smaller — constrain to ~40% of card width, one row only
         val mStr = monthNames[month]
         val maxLabelW = w * 0.50f
         val mDotR = h * 0.018f
@@ -267,16 +247,15 @@ object WidgetRenderer {
         val mCharGaps = mCharGap * mScale
         val labelH = DotFont.measureHeight(mDotRs, mStepYs)
 
-        DotFont.draw(canvas, mStr, l + gap, t + gap, mDotRs, mStepXs, mStepYs, mCharGaps, paint) { _, _ -> COLOR_RED }
+        DotFont.draw(canvas, mStr, l + gap, t + gap,
+            mDotRs, mStepXs, mStepYs, mCharGaps, paint) { _, _ -> COLOR_RED }
 
-        // % remaining top right
         paint.color = COLOR_WHITE
         paint.textSize = h * 0.09f
         paint.textAlign = Paint.Align.RIGHT
         paint.typeface = Typeface.MONOSPACE
         canvas.drawText("$monthPctRemaining%", l + w - gap, t + gap + labelH, paint)
 
-        // Day-of-week header row
         val days = arrayOf("S","M","T","W","T","F","S")
         val headerY = t + gap + labelH + h * 0.10f
         val cellW = (w - gap * 2) / 7f
@@ -288,10 +267,9 @@ object WidgetRenderer {
             canvas.drawText(d, l + gap + cellW * i + cellW / 2f, headerY, paint)
         }
 
-        // Day number grid
         val cal = Calendar.getInstance()
         cal.set(Calendar.DAY_OF_MONTH, 1)
-        val firstDow = cal.get(Calendar.DAY_OF_WEEK) - 1  // 0=Sun
+        val firstDow = cal.get(Calendar.DAY_OF_WEEK) - 1
         val gridTop = headerY + h * 0.04f
         val gridH = h - (gridTop - t) - gap
         val cellH = gridH / 6f
@@ -367,8 +345,8 @@ object WidgetRenderer {
         yearLines.forEachIndexed { lineIdx, lineStr ->
             val lineCharStart = lineIdx * 9
             val lineY = barY0 + lineIdx * lineH
-
-            DotFont.draw(canvas, lineStr, l + gap, lineY, dDotR, dStepX, dStepY, dCharGap, paint) { ci, _ ->
+            DotFont.draw(canvas, lineStr, l + gap, lineY,
+                dDotR, dStepX, dStepY, dCharGap, paint) { ci, _ ->
                 val g = (lineCharStart + ci).toFloat()
                 when {
                     g + 1f <= elapsedChars -> COLOR_DIM
