@@ -5,7 +5,6 @@ import android.graphics.Paint
 
 object DotFont {
 
-    // 5x7 dot matrix glyphs
     private val GLYPHS = mapOf(
         'A' to arrayOf("01110","10001","10001","11111","10001","10001","10001"),
         'B' to arrayOf("11110","10001","10001","11110","10001","10001","11110"),
@@ -48,32 +47,21 @@ object DotFont {
     )
 
     /**
-     * Draw a string using the dot matrix font.
-     * @param canvas Canvas to draw on
-     * @param text String to render
-     * @param startX Left edge X
-     * @param startY Top edge Y
-     * @param dotRadius Radius of each dot circle
-     * @param stepX Horizontal spacing between dot columns
-     * @param stepY Vertical spacing between dot rows
-     * @param charGap Extra gap between characters
-     * @param getColor Lambda that receives (charIndex, globalDotX) and returns color int
+     * Draw dot-matrix text.
+     * boldFactor: 1.0 = normal dot radius, 1.4 = bolder/blockier (dots overlap slightly)
      */
     fun draw(
         canvas: Canvas,
         text: String,
-        startX: Float,
-        startY: Float,
+        startX: Float, startY: Float,
         dotRadius: Float,
-        stepX: Float,
-        stepY: Float,
+        stepX: Float, stepY: Float,
         charGap: Float,
         paint: Paint,
-        getColor: (charIndex: Int, dotColInString: Float) -> Int
+        boldFactor: Float = 1.0f,
+        getColor: (charIndex: Int, globalDotX: Float) -> Int
     ) {
-        // Compute total dot width for progress calculations
-        val totalDots = text.length * 5 + (text.length - 1) // 5 cols per char, gaps counted in charGap
-
+        val drawR = dotRadius * boldFactor
         var xOffset = startX
         text.forEachIndexed { ci, ch ->
             val glyph = GLYPHS[ch] ?: GLYPHS[' ']!!
@@ -82,10 +70,9 @@ object DotFont {
                     if (glyph[row][col] == '1') {
                         val px = xOffset + col * stepX + dotRadius
                         val py = startY + row * stepY + dotRadius
-                        // globalDotX: position in the string from 0.0 to text.length
                         val globalDotX = ci.toFloat() + col / 4f
                         paint.color = getColor(ci, globalDotX)
-                        canvas.drawCircle(px, py, dotRadius, paint)
+                        canvas.drawCircle(px, py, drawR, paint)
                     }
                 }
             }
@@ -93,18 +80,10 @@ object DotFont {
         }
     }
 
-    /**
-     * Measure total pixel width of a string at the given scale.
-     */
     fun measureWidth(text: String, dotRadius: Float, stepX: Float, charGap: Float): Float {
         if (text.isEmpty()) return 0f
         return text.length * (5 * stepX) + (text.length - 1) * charGap + dotRadius * 2
     }
 
-    /**
-     * Total pixel height of one line.
-     */
-    fun measureHeight(dotRadius: Float, stepY: Float): Float {
-        return 7 * stepY + dotRadius * 2
-    }
+    fun measureHeight(dotRadius: Float, stepY: Float): Float = 7 * stepY + dotRadius * 2
 }

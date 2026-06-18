@@ -1,63 +1,70 @@
 package com.progresswidget
 
+import android.content.Context
 import android.graphics.*
 import java.util.Calendar
 import kotlin.math.*
 
 object WidgetRenderer {
 
-    private val COLOR_CARD       = Color.parseColor("#1E1E1E")
-    private val COLOR_DOT_LAND   = Color.parseColor("#E8E8E8")
-    private val COLOR_DOT_OCEAN  = Color.parseColor("#3A3A3A")
-    private val COLOR_DOT_SHADOW = Color.parseColor("#1A1A1A")
-    private val COLOR_RED        = Color.parseColor("#E24B4A")
-    private val COLOR_DIM        = Color.parseColor("#3A3A3A")
-    private val COLOR_BRIGHT     = Color.parseColor("#D8D8D8")
-    private val COLOR_LABEL      = Color.parseColor("#777777")
-    private val COLOR_WHITE      = Color.parseColor("#FFFFFF")
-    private val COLOR_PAST_DATE  = Color.parseColor("#444444")
-    private val COLOR_SUN_RED    = Color.parseColor("#E24B4A")
+    private val COLOR_CARD        = Color.parseColor("#1E1E1E")
+    private val COLOR_RED         = Color.parseColor("#E24B4A")
+    private val COLOR_DIM         = Color.parseColor("#606060")  // brighter than before
+    private val COLOR_BRIGHT      = Color.parseColor("#D8D8D8")
+    private val COLOR_LABEL       = Color.parseColor("#888888")
+    private val COLOR_WHITE       = Color.parseColor("#FFFFFF")
+    private val COLOR_PAST_DATE   = Color.parseColor("#666666")  // brighter past dates
+    private val COLOR_SUN_RED     = Color.parseColor("#E24B4A")
+    private val COLOR_SHADOW_TINT = Color.parseColor("#000000")  // for globe shadow overlay
 
-    // Scale a dot-font to exactly fit within maxWidth x maxHeight,
-    // returning (dotR, stepX, stepY, charGap) — all in pixels.
-    // Base proportions: stepX = 2.6*dotR, stepY = 2.6*dotR, charGap = 2.0*dotR
-    private fun scaleDotFont(text: String, maxWidth: Float, maxHeight: Float)
-            : FloatArray {
-        // Start with height-constrained size: 7 rows of dots fit in maxHeight
-        // maxHeight = 7*stepY + 2*dotR = 7*(2.6r) + 2r = 20.2r → r = maxHeight/20.2
-        var dotR    = maxHeight / 20.2f
-        var stepX   = dotR * 2.6f
-        var stepY   = dotR * 2.6f
-        var charGap = dotR * 2.0f
+    // Fit dot font into maxWidth x maxHeight box, returns [dotR, stepX, stepY, charGap]
+    private fun scaleDotFont(text: String, maxWidth: Float, maxHeight: Float): FloatArray {
+        // stepX = stepY = 2.5*dotR, charGap = 1.8*dotR
+        // height = 7*stepY + 2*dotR = 7*2.5r + 2r = 19.5r
+        var dotR    = maxHeight / 19.5f
+        var stepX   = dotR * 2.5f
+        var stepY   = dotR * 2.5f
+        var charGap = dotR * 1.8f
         val natW    = DotFont.measureWidth(text, dotR, stepX, charGap)
         if (natW > maxWidth) {
-            val s    = maxWidth / natW
-            dotR    *= s; stepX *= s; stepY *= s; charGap *= s
+            val s = maxWidth / natW
+            dotR *= s; stepX *= s; stepY *= s; charGap *= s
         }
         return floatArrayOf(dotR, stepX, stepY, charGap)
     }
 
+    // Cache globe bitmap so we don't reload every render
+    private var globeBitmap: Bitmap? = null
+
     fun render(
+        context: Context,
         widthPx: Int, heightPx: Int,
         wakeH: Int, wakeM: Int,
         sleepH: Int, sleepM: Int,
         pulsePhase: Float,
-        weekStartDay: Int   // 0=Sun, 1=Mon
+        weekStartDay: Int,
+        monthOffset: Int = 0
     ): Bitmap {
         val bmp    = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         val paint  = Paint(Paint.ANTI_ALIAS_FLAG)
 
         val now        = Calendar.getInstance()
+        // Apply month offset for calendar navigation
+        val calNav     = Calendar.getInstance()
+        if (monthOffset != 0) calNav.add(Calendar.MONTH, monthOffset)
+
         val hour       = now.get(Calendar.HOUR_OF_DAY)
         val minute     = now.get(Calendar.MINUTE)
-        val dayOfWeek  = now.get(Calendar.DAY_OF_WEEK)   // 1=Sun
+        val dayOfWeek  = now.get(Calendar.DAY_OF_WEEK)
         val dayOfMonth = now.get(Calendar.DAY_OF_MONTH)
-        val month      = now.get(Calendar.MONTH)
+        val month      = calNav.get(Calendar.MONTH)   // navigated month
         val dayOfYear  = now.get(Calendar.DAY_OF_YEAR)
-        val maxDay     = now.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val maxDay     = calNav.getActualMaximum(Calendar.DAY_OF_MONTH)
         val maxDOY     = now.getActualMaximum(Calendar.DAY_OF_YEAR)
         val weekOfYear = now.get(Calendar.WEEK_OF_YEAR)
+        // For calendar, show day-of-month highlight only if viewing current month
+        val calDayOfMonth = if (monthOffset == 0) dayOfMonth else -1
 
         val nowMins    = hour * 60 + minute
         val wakeMins   = wakeH  * 60 + wakeM
@@ -71,8 +78,8 @@ object WidgetRenderer {
         }
         val dayPct = ((1f - dayElapsed) * 100f).toInt().coerceIn(0, 100)
 
-        val dow0Sun  = dayOfWeek - 1
-        val dow0     = if (weekStartDay == 1) (dow0Sun + 6) % 7 else dow0Sun
+        val dow0Sun = dayOfWeek - 1
+        val dow0    = if (weekStartDay == 1) (dow0Sun + 6) % 7 else dow0Sun
         val weekElapsed  = (dow0 + nowMins / 1440f) / 7f
         val weekPct      = ((1f - weekElapsed) * 100f).toInt().coerceIn(0, 100)
         val monthElapsed = dayOfMonth.toFloat() / maxDay
@@ -81,17 +88,17 @@ object WidgetRenderer {
         val yearPct      = ((1f - yearElapsed) * 100f).toInt().coerceIn(0, 100)
 
         // ── Layout ────────────────────────────────────────────────────────────
-        val W = widthPx.toFloat()
-        val H = heightPx.toFloat()
+        val W = widthPx.toFloat(); val H = heightPx.toFloat()
         val gap     = minOf(W, H) * 0.030f
         val cornerR = minOf(W, H) * 0.10f
 
-        val globeW = W * 0.385f;  val globeH = H
+        val globeW = W * 0.385f; val globeH = H
         val rightL = globeW + gap; val rightW = W - rightL
         val weekH  = H * 0.285f
-        val sqT    = weekH + gap;  val sqH = H - sqT
+        val sqT    = weekH + gap; val sqH = H - sqT
         val sqW    = (rightW - gap) / 2f
-        val calL   = rightL;       val yearL = rightL + sqW + gap
+        val calL   = rightL; val yearL = rightL + sqW + gap
+        val pad    = gap * 0.9f
 
         canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
         drawCard(canvas, paint, 0f,    0f,  globeW, globeH, cornerR)
@@ -99,70 +106,54 @@ object WidgetRenderer {
         drawCard(canvas, paint, calL,  sqT, sqW,    sqH,    cornerR)
         drawCard(canvas, paint, yearL, sqT, sqW,    sqH,    cornerR)
 
-        // ── Globe ─────────────────────────────────────────────────────────────
-        val gcx = globeW / 2f
-        val gcy = globeH * 0.43f
-        val GR  = minOf(globeW * 0.82f, globeH * 0.40f)
-        drawGlobe(canvas, paint, gcx, gcy, GR, dayElapsed, pulsePhase)
+        // ── Globe (image-based) ───────────────────────────────────────────────
+        drawGlobeImage(context, canvas, paint, 0f, 0f, globeW, globeH, dayElapsed, pulsePhase)
 
-        // Day % below globe — fit in 60% of globe width, 8% of globe height
+        // Day % — use same scale as other percentages (fit in small area below globe)
         val pStr   = "$dayPct%"
-        val pScale = scaleDotFont(pStr, globeW * 0.60f, globeH * 0.075f)
+        // Reference size: fit in globeW*0.55 wide, globeH*0.07 tall
+        val pScale = scaleDotFont(pStr, globeW * 0.55f, globeH * 0.068f)
         val pW     = DotFont.measureWidth(pStr, pScale[0], pScale[1], pScale[3])
         val pH     = DotFont.measureHeight(pScale[0], pScale[2])
-        DotFont.draw(canvas, pStr, gcx - pW / 2f, globeH * 0.855f,
-            pScale[0], pScale[1], pScale[2], pScale[3], paint) { _, _ -> COLOR_RED }
+        DotFont.draw(canvas, pStr, globeW/2f - pW/2f, globeH * 0.855f,
+            pScale[0], pScale[1], pScale[2], pScale[3], paint, 1.25f) { _, _ -> COLOR_RED }
 
-        paint.typeface  = Typeface.MONOSPACE
-        paint.textAlign = Paint.Align.CENTER
-        paint.color     = COLOR_LABEL
-        paint.textSize  = globeH * 0.040f
-        canvas.drawText("AWAKE", gcx, globeH * 0.855f + pH + globeH * 0.025f, paint)
+        paint.typeface = Typeface.MONOSPACE; paint.textAlign = Paint.Align.CENTER
+        paint.color = COLOR_LABEL; paint.textSize = pH * 0.6f
+        canvas.drawText("AWAKE", globeW/2f, globeH*0.855f + pH + pH*0.3f, paint)
 
         // ── Week bar ──────────────────────────────────────────────────────────
-        val innerPad = gap * 0.9f
+        // Reference dot size: fit "37%" into globeW*0.55 x globeH*0.068 — reuse pScale as reference
+        val refDotR = pScale[0]  // ALL percentages and labels sized to match this
 
-        // Header row: "W25" (W=red, 25=white) left | "61%" (red) right
-        // All fit in top 30% of weekH
-        val hdrMaxH = weekH * 0.28f
-        val hdrMaxW = rightW * 0.40f  // each side gets ~40%
+        val hdrStX = refDotR * 2.5f; val hdrStY = refDotR * 2.5f; val hdrCG = refDotR * 1.8f
+        val hdrH2  = DotFont.measureHeight(refDotR, hdrStY)
+        val hdrY   = pad
 
-        val wLabelScale = scaleDotFont("W", hdrMaxW * 0.25f, hdrMaxH)
-        val wnStr  = weekOfYear.toString()
-        val wnScale = scaleDotFont(wnStr, hdrMaxW * 0.70f, hdrMaxH)
-        // Use the smaller of the two dotR so they match height
-        val hdrDotR  = minOf(wLabelScale[0], wnScale[0])
-        val hdrStepX = hdrDotR * 2.6f
-        val hdrStepY = hdrDotR * 2.6f
-        val hdrCG    = hdrDotR * 2.0f
+        // "W" red + week number white
+        val wLabelW = DotFont.measureWidth("W", refDotR, hdrStX, hdrCG)
+        DotFont.draw(canvas, "W", rightL + pad, hdrY,
+            refDotR, hdrStX, hdrStY, hdrCG, paint, 1.25f) { _, _ -> COLOR_RED }
+        DotFont.draw(canvas, weekOfYear.toString(), rightL + pad + wLabelW + hdrCG, hdrY,
+            refDotR, hdrStX, hdrStY, hdrCG, paint, 1.25f) { _, _ -> COLOR_WHITE }
 
-        val hdrY     = innerPad
-        val wLabelW  = DotFont.measureWidth("W", hdrDotR, hdrStepX, hdrCG)
-        DotFont.draw(canvas, "W", rightL + innerPad, hdrY,
-            hdrDotR, hdrStepX, hdrStepY, hdrCG, paint) { _, _ -> COLOR_RED }
-        DotFont.draw(canvas, wnStr, rightL + innerPad + wLabelW + hdrCG, hdrY,
-            hdrDotR, hdrStepX, hdrStepY, hdrCG, paint) { _, _ -> COLOR_WHITE }
+        // Week % red, right-aligned
+        val wPctStr = "$weekPct%"
+        val wPctW   = DotFont.measureWidth(wPctStr, refDotR, hdrStX, hdrCG)
+        DotFont.draw(canvas, wPctStr, rightL + rightW - pad - wPctW, hdrY,
+            refDotR, hdrStX, hdrStY, hdrCG, paint, 1.25f) { _, _ -> COLOR_RED }
 
-        val pctStr = "$weekPct%"
-        val pctScale = scaleDotFont(pctStr, rightW * 0.38f, hdrMaxH)
-        val pctDotR  = minOf(pctScale[0], hdrDotR)
-        val pctStX   = pctDotR * 2.6f; val pctStY = pctDotR * 2.6f; val pctCG = pctDotR * 2.0f
-        val pctW2    = DotFont.measureWidth(pctStr, pctDotR, pctStX, pctCG)
-        DotFont.draw(canvas, pctStr, rightL + rightW - innerPad - pctW2, hdrY,
-            pctDotR, pctStX, pctStY, pctCG, paint) { _, _ -> COLOR_RED }
-
-        // Week progress bar: MONTUEWEDTHUFRISATSUN fitted in remaining height
-        val wStr     = "MONTUEWEDTHUFRISATSUN"
-        val barMaxH  = weekH * 0.52f
-        val barMaxW  = rightW - innerPad * 2f
-        val wScale   = scaleDotFont(wStr, barMaxW, barMaxH)
-        val hdrH2    = DotFont.measureHeight(hdrDotR, hdrStepY)
-        val barY     = hdrY + hdrH2 + gap * 0.6f
+        // MONTUEWEDTHUFRISATSUN progress bar — bolder, brighter, fill remaining height
+        val wStr    = "MONTUEWEDTHUFRISATSUN"
+        val barMaxH = weekH - hdrH2 - pad * 2.8f
+        val barMaxW = rightW - pad * 2f
+        val wScale  = scaleDotFont(wStr, barMaxW, barMaxH)
+        val barY    = hdrY + hdrH2 + pad * 0.8f
 
         val charElapsed  = weekElapsed * 21f
         val todayEndChar = (dow0 + 1) * 3f
-        DotFont.draw(canvas, wStr, rightL + innerPad, barY,
-            wScale[0], wScale[1], wScale[2], wScale[3], paint) { ci, _ ->
+        DotFont.draw(canvas, wStr, rightL + pad, barY,
+            wScale[0], wScale[1], wScale[2], wScale[3], paint, 1.35f) { ci, _ ->
             val cf = ci.toFloat()
             when {
                 cf + 1f <= charElapsed -> COLOR_DIM
@@ -172,11 +163,11 @@ object WidgetRenderer {
         }
 
         // ── Calendar ──────────────────────────────────────────────────────────
-        drawCalendar(canvas, paint, calL, sqT, sqW, sqH, innerPad,
-            dayOfMonth, month, maxDay, monthPct, weekStartDay)
+        drawCalendar(canvas, paint, calL, sqT, sqW, sqH, pad, refDotR,
+            calDayOfMonth, month, maxDay, monthPct, weekStartDay, calNav, monthOffset)
 
         // ── Year bar ──────────────────────────────────────────────────────────
-        drawYearBar(canvas, paint, yearL, sqT, sqW, sqH, innerPad,
+        drawYearBar(canvas, paint, yearL, sqT, sqW, sqH, pad, refDotR,
             yearPct, yearElapsed, month)
 
         return bmp
@@ -188,77 +179,125 @@ object WidgetRenderer {
         canvas.drawRoundRect(l, t, l + w, t + h, r, r, paint)
     }
 
-    private fun drawGlobe(canvas: Canvas, paint: Paint,
-                          cx: Float, cy: Float, R: Float,
-                          dayElapsed: Float, pulsePhase: Float) {
-        val termNX = 2f * dayElapsed - 1f
-        val dotR   = R * 0.022f
-        paint.style = Paint.Style.FILL
-        for (dot in GlobeDotMap.dots) {
-            val px = cx + dot.normX * R
-            val py = cy + dot.normY * R
-            paint.color = when {
-                dot.normX < termNX -> COLOR_DOT_SHADOW
-                dot.isLand          -> COLOR_DOT_LAND
-                else                -> COLOR_DOT_OCEAN
-            }
-            canvas.drawCircle(px, py, dotR, paint)
+    private fun drawGlobeImage(
+        context: Context, canvas: Canvas, paint: Paint,
+        cardL: Float, cardT: Float, cardW: Float, cardH: Float,
+        dayElapsed: Float, pulsePhase: Float
+    ) {
+        // Load globe bitmap once
+        if (globeBitmap == null) {
+            val resId = context.resources.getIdentifier("globe_white", "drawable", context.packageName)
+            globeBitmap = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
         }
-        val band = 0.06f
-        val arc  = GlobeDotMap.dots
-            .filter { it.normX >= termNX && it.normX < termNX + band }
-            .map { Pair(cx + it.normX * R, cy + it.normY * R) }
-            .sortedBy { it.second }
-        val fill = (arc.size * pulsePhase).toInt()
-        paint.color = COLOR_RED
-        arc.take(fill).forEach { canvas.drawCircle(it.first, it.second, dotR * 1.3f, paint) }
+        val gb = globeBitmap ?: return
+
+        // Draw globe centered in card, square, 85% of smaller dimension
+        val size  = minOf(cardW, cardH) * 0.82f
+        val left  = cardL + (cardW - size) / 2f
+        val top   = cardT + cardH * 0.04f
+        val dst   = RectF(left, top, left + size, top + size)
+
+        // Draw full globe
+        paint.alpha = 255
+        canvas.drawBitmap(gb, null, dst, paint)
+
+        // Shadow overlay: dark rectangle covering the LEFT portion (elapsed fraction)
+        // terminatorX = left + size * dayElapsed  (0%=no shadow, 100%=fully dark)
+        val terminatorX = left + size * dayElapsed
+        if (terminatorX > left) {
+            paint.color = Color.argb(210, 0, 0, 0)
+            paint.style = Paint.Style.FILL
+            canvas.drawRect(left, top, terminatorX, top + size, paint)
+        }
+
+        // Red terminator line — a subtle arc (thin vertical rounded stroke)
+        // Arc curves gently like a 'D': right-facing, at terminatorX
+        // We draw it as a thin bezier curve
+        if (dayElapsed > 0.02f && dayElapsed < 0.98f) {
+            val arcPath = Path()
+            val cx  = terminatorX
+            val cy  = top + size / 2f
+            val rad = size / 2f
+            // Subtle rightward bow: control point offset = 8% of size to the right
+            val bow = size * 0.08f
+            // Arc top to bottom, bowing right (D shape)
+            arcPath.moveTo(cx, top + size * 0.05f)
+            arcPath.cubicTo(
+                cx + bow, cy - rad * 0.5f,
+                cx + bow, cy + rad * 0.5f,
+                cx, top + size * 0.95f
+            )
+
+            paint.reset()
+            paint.isAntiAlias = true
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = size * 0.022f
+            paint.strokeCap = Paint.Cap.ROUND
+
+            // Pulse: alpha cycles from 60 → 255 → 60
+            val pulseAlpha = (60 + 195 * sin(pulsePhase * Math.PI).toFloat()).toInt().coerceIn(60, 255)
+            paint.color = Color.argb(pulseAlpha, 226, 75, 74)
+            canvas.drawPath(arcPath, paint)
+            paint.reset(); paint.isAntiAlias = true
+        }
     }
 
-    private fun drawCalendar(canvas: Canvas, paint: Paint,
-                             l: Float, t: Float, w: Float, h: Float, pad: Float,
-                             dayOfMonth: Int, month: Int, maxDay: Int,
-                             monthPct: Int, weekStartDay: Int) {
+    private fun drawCalendar(
+        canvas: Canvas, paint: Paint,
+        l: Float, t: Float, w: Float, h: Float, pad: Float,
+        refDotR: Float,
+        dayOfMonth: Int, month: Int, maxDay: Int,
+        monthPct: Int, weekStartDay: Int,
+        calNav: Calendar, monthOffset: Int
+    ) {
         val monthNames = arrayOf("JAN","FEB","MAR","APR","MAY","JUN",
             "JUL","AUG","SEP","OCT","NOV","DEC")
 
-        // Month label + pct on same row, sharing top 18% of card height
-        val hdrH   = h * 0.16f
-        val mStr   = monthNames[month]
-        val mScale = scaleDotFont(mStr, w * 0.46f, hdrH)
-        val mH     = DotFont.measureHeight(mScale[0], mScale[2])
-        DotFont.draw(canvas, mStr, l + pad, t + pad,
-            mScale[0], mScale[1], mScale[2], mScale[3], paint) { _, _ -> COLOR_RED }
+        val hdrStX = refDotR * 2.5f; val hdrStY = refDotR * 2.5f; val hdrCG = refDotR * 1.8f
+        val hdrH   = DotFont.measureHeight(refDotR, hdrStY)
 
-        val pStr   = "$monthPct%"
-        val pScale = scaleDotFont(pStr, w * 0.38f, hdrH)
-        val pDotR  = minOf(mScale[0], pScale[0])
-        val pStX   = pDotR * 2.6f; val pStY = pDotR * 2.6f; val pCG2 = pDotR * 2.0f
-        val pW     = DotFont.measureWidth(pStr, pDotR, pStX, pCG2)
+        // Month name — scale to fit left half of card header
+        val mStr   = monthNames[month]
+        val mScale = scaleDotFont(mStr, w * 0.52f, hdrH * 1.1f)
+        DotFont.draw(canvas, mStr, l + pad, t + pad,
+            mScale[0], mScale[1], mScale[2], mScale[3], paint, 1.25f) { _, _ -> COLOR_RED }
+
+        // Month % — same refDotR, right-aligned
+        val pStr = "$monthPct%"
+        val pW   = DotFont.measureWidth(pStr, refDotR, hdrStX, hdrCG)
         DotFont.draw(canvas, pStr, l + w - pad - pW, t + pad,
-            pDotR, pStX, pStY, pCG2, paint) { _, _ -> COLOR_RED }
+            refDotR, hdrStX, hdrStY, hdrCG, paint, 1.25f) { _, _ -> COLOR_RED }
+
+        // Draw ‹ and › nav arrows (small, subtle)
+        paint.typeface = Typeface.MONOSPACE; paint.textAlign = Paint.Align.CENTER
+        paint.textSize = hdrH * 0.9f
+        paint.color    = Color.argb(180, 226, 75, 74)
+        canvas.drawText("‹", l + w - pad - pW - refDotR * 4f, t + pad + hdrH * 0.9f, paint)
+        if (monthOffset < 0) {
+            canvas.drawText("›", l + w - pad - pW - refDotR * 1.5f, t + pad + hdrH * 0.9f, paint)
+        }
 
         // Day-of-week header
         val sunCol  = if (weekStartDay == 1) 6 else 0
         val dayHdrs = if (weekStartDay == 1)
             arrayOf("M","T","W","T","F","S","S") else arrayOf("S","M","T","W","T","F","S")
-        val headerY = t + pad + mH + h * 0.04f
         val cellW   = (w - pad * 2f) / 7f
-        val cellH   = (h - (headerY - t) - pad * 0.5f - h * 0.04f) / 7f
+        val headerY = t + pad + hdrH * 1.2f
+        val cellH   = (h - (headerY - t) - pad) / 7.2f
 
-        paint.typeface  = Typeface.MONOSPACE
-        paint.textAlign = Paint.Align.CENTER
-        paint.textSize  = cellH * 0.72f
+        paint.typeface = Typeface.MONOSPACE; paint.textAlign = Paint.Align.CENTER
+        paint.textSize = cellH * 0.72f
         dayHdrs.forEachIndexed { i, d ->
             paint.color = if (i == sunCol) COLOR_SUN_RED else COLOR_LABEL
             canvas.drawText(d, l + pad + cellW * i + cellW / 2f, headerY, paint)
         }
 
-        // Date grid
-        val cal      = Calendar.getInstance()
-        cal.set(Calendar.DAY_OF_MONTH, 1)
-        val fd1      = cal.get(Calendar.DAY_OF_WEEK) - 1  // 0=Sun
+        // Date grid — use calNav for first-day-of-month
+        calNav.set(Calendar.DAY_OF_MONTH, 1)
+        val fd1      = calNav.get(Calendar.DAY_OF_WEEK) - 1
         val firstCol = if (weekStartDay == 1) (fd1 + 6) % 7 else fd1
-        val gridTop  = headerY + cellH * 0.9f
+        val gridTop  = headerY + cellH * 0.85f
+        paint.textSize = cellH * 0.72f
 
         for (d in 1..maxDay) {
             val idx  = firstCol + d - 1
@@ -266,10 +305,11 @@ object WidgetRenderer {
             val cx2  = l + pad + cellW * col + cellW / 2f
             val cy2  = gridTop + cellH * row + cellH * 0.72f
             val isSun = col == sunCol
+
             when {
                 d == dayOfMonth -> {
                     paint.color = COLOR_RED; paint.style = Paint.Style.FILL
-                    canvas.drawCircle(cx2, cy2 - cellH * 0.35f, cellW * 0.37f, paint)
+                    canvas.drawCircle(cx2, cy2 - cellH * 0.33f, cellW * 0.37f, paint)
                     paint.color    = Color.WHITE
                     paint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     paint.textSize = cellH * 0.82f
@@ -279,7 +319,7 @@ object WidgetRenderer {
                     paint.textSize = cellH * 0.72f
                 }
                 d < dayOfMonth -> {
-                    paint.color = if (isSun) 0x88E24B4A.toInt() else COLOR_PAST_DATE
+                    paint.color = if (isSun) 0xAAE24B4A.toInt() else COLOR_PAST_DATE
                     paint.textAlign = Paint.Align.CENTER
                     canvas.drawText(d.toString(), cx2, cy2, paint)
                 }
@@ -293,41 +333,42 @@ object WidgetRenderer {
         }
     }
 
-    private fun drawYearBar(canvas: Canvas, paint: Paint,
-                            l: Float, t: Float, w: Float, h: Float, pad: Float,
-                            yearPct: Int, yearElapsed: Float, currentMonth: Int) {
-        val cal = Calendar.getInstance()
+    private fun drawYearBar(
+        canvas: Canvas, paint: Paint,
+        l: Float, t: Float, w: Float, h: Float, pad: Float,
+        refDotR: Float,
+        yearPct: Int, yearElapsed: Float, currentMonth: Int
+    ) {
+        val cal    = Calendar.getInstance()
+        val hdrStX = refDotR * 2.5f; val hdrStY = refDotR * 2.5f; val hdrCG = refDotR * 1.8f
+        val hdrH   = DotFont.measureHeight(refDotR, hdrStY)
 
-        // Year number + pct in header row
-        val hdrH   = h * 0.16f
-        val yrStr  = cal.get(Calendar.YEAR).toString()
-        val yScale = scaleDotFont(yrStr, w * 0.46f, hdrH)
+        // Year number red dot font
+        val yrStr = cal.get(Calendar.YEAR).toString()
         DotFont.draw(canvas, yrStr, l + pad, t + pad,
-            yScale[0], yScale[1], yScale[2], yScale[3], paint) { _, _ -> COLOR_RED }
+            refDotR, hdrStX, hdrStY, hdrCG, paint, 1.25f) { _, _ -> COLOR_RED }
 
-        val pStr   = "$yearPct%"
-        val pDotR  = minOf(yScale[0], scaleDotFont(pStr, w * 0.38f, hdrH)[0])
-        val pStX   = pDotR * 2.6f; val pStY = pDotR * 2.6f; val pCG = pDotR * 2.0f
-        val pW     = DotFont.measureWidth(pStr, pDotR, pStX, pCG)
+        // Year % red dot font right-aligned
+        val pStr = "$yearPct%"
+        val pW   = DotFont.measureWidth(pStr, refDotR, hdrStX, hdrCG)
         DotFont.draw(canvas, pStr, l + w - pad - pW, t + pad,
-            pDotR, pStX, pStY, pCG, paint) { _, _ -> COLOR_RED }
+            refDotR, hdrStX, hdrStY, hdrCG, paint, 1.25f) { _, _ -> COLOR_RED }
 
-        // 4-line month progress bar fills remaining height
-        val hdrH2    = DotFont.measureHeight(yScale[0], yScale[2])
-        val barAreaH = h - pad - hdrH2 - pad * 1.5f
-        val lineH    = barAreaH / 4f
-        val barY0    = t + pad + hdrH2 + pad * 0.5f
-        val barW     = w - pad * 2f
-
+        // 4-line month progress bar — bolder, blockier (boldFactor 1.35)
         val yearLines    = arrayOf("JANFEBMAR","APRMAYJUN","JULAUGSEP","OCTNOVDEC")
         val elapsedChars = yearElapsed * 36f
         val monthEndChar = (currentMonth + 1) * 3f
 
+        val barAreaH = h - pad - hdrH * 1.3f - pad
+        val lineH    = barAreaH / 4f
+        val barY0    = t + pad + hdrH * 1.3f
+        val barW     = w - pad * 2f
+
         yearLines.forEachIndexed { li, lineStr ->
-            val s    = scaleDotFont(lineStr, barW, lineH * 0.85f)
+            val s = scaleDotFont(lineStr, barW, lineH * 0.82f)
             val lineCharStart = li * 9
             DotFont.draw(canvas, lineStr, l + pad, barY0 + li * lineH,
-                s[0], s[1], s[2], s[3], paint) { ci, _ ->
+                s[0], s[1], s[2], s[3], paint, 1.35f) { ci, _ ->
                 val g = (lineCharStart + ci).toFloat()
                 when {
                     g + 1f <= elapsedChars -> COLOR_DIM

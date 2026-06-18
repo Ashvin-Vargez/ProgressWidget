@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#141414"
-    android:gravity="center"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
     <ImageView
         android:id="@+id/widget_image"
@@ -12,4 +9,18 @@
         android:layout_height="match_parent"
         android:scaleType="fitXY" />
 
-</LinearLayout>
+    <!-- Invisible tap targets for calendar month navigation -->
+    <!-- Left ~40% of right half of widget, bottom ~60% = calendar card area -->
+    <View
+        android:id="@+id/btn_prev_month"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent" />
+
+    <View
+        android:id="@+id/btn_next_month"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent" />
+
+</FrameLayout>
