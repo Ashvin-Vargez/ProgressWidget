@@ -7,7 +7,6 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.ProgressWidget">
 
-        <!-- Widget Receiver -->
         <receiver
             android:name=".ProgressWidgetReceiver"
             android:exported="true">
@@ -22,7 +21,6 @@
                 android:resource="@xml/widget_info" />
         </receiver>
 
-        <!-- Settings Activity -->
         <activity
             android:name=".SettingsActivity"
             android:exported="true"
@@ -30,15 +28,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <!-- Widget Config Activity -->
-        <activity
-            android:name=".WidgetConfigActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 

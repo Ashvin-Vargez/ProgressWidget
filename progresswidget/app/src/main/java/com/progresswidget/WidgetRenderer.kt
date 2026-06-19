@@ -40,9 +40,30 @@ object WidgetRenderer {
         weekStartDay: Int,
         monthOffset: Int = 0
     ): Bitmap {
-        val bmp    = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+        val bmp = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+        try {
+            renderInternal(bmp, context, widthPx, heightPx,
+                wakeH, wakeM, sleepH, sleepM, pulsePhase, weekStartDay, monthOffset)
+        } catch (e: Exception) {
+            val c = Canvas(bmp)
+            val p = Paint(Paint.ANTI_ALIAS_FLAG)
+            c.drawColor(Color.parseColor("#1E1E1E"))
+            p.color = Color.WHITE; p.textSize = 28f; p.textAlign = Paint.Align.CENTER
+            c.drawText("Error: " + e.javaClass.simpleName, widthPx/2f, heightPx/2f, p)
+            p.textSize = 22f
+            val msg = e.message ?: ""
+            c.drawText(if (msg.length > 60) msg.substring(0,60) else msg, widthPx/2f, heightPx/2f+40f, p)
+        }
+        return bmp
+    }
+
+    private fun renderInternal(
+        bmp: Bitmap, context: Context,
+        widthPx: Int, heightPx: Int,
+        wakeH: Int, wakeM: Int, sleepH: Int, sleepM: Int,
+        pulsePhase: Float, weekStartDay: Int, monthOffset: Int
+    ) {
         val canvas = Canvas(bmp)
-        // Single paint object — never call paint.reset(), set properties explicitly each time
         val paint  = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.style = Paint.Style.FILL
 
@@ -169,7 +190,6 @@ object WidgetRenderer {
         drawYearBar(canvas, paint, yearL, sqT, sqW, sqH, pad, refDotR,
             yearPct, yearElapsed, now.get(Calendar.MONTH))
 
-        return bmp
     }
 
     private fun drawCard(canvas: Canvas, paint: Paint,
@@ -269,9 +289,9 @@ object WidgetRenderer {
         paint.alpha     = 180
         paint.color     = COLOR_RED
         val arrowX = l + w - pad - pW - refDotR * 1.5f
-        canvas.drawText("‹", arrowX, t + pad + hdrH * 0.85f, paint)
+        canvas.drawText("<", arrowX, t + pad + hdrH * 0.85f, paint)
         if (monthOffset < 0) {
-            canvas.drawText("›", arrowX + refDotR * 3f, t + pad + hdrH * 0.85f, paint)
+            canvas.drawText(">", arrowX + refDotR * 3f, t + pad + hdrH * 0.85f, paint)
         }
         paint.alpha = 255
 
