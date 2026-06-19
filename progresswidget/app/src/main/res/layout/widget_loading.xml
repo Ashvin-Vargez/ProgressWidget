@@ -73,22 +73,22 @@
     </LinearLayout>
 
     <!-- Month nav overlays on the calendar card area -->
-    <!-- prev: left half of cal card bottom strip -->
+    <!-- prev: taps left portion of calendar card -->
     <View
         android:id="@+id/btn_prev_month"
         android:layout_width="80dp"
         android:layout_height="40dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="39%"
+        android:layout_marginStart="156dp"
         android:background="@android:color/transparent" />
 
-    <!-- next: right of prev -->
+    <!-- next: taps right portion of calendar card -->
     <View
         android:id="@+id/btn_next_month"
         android:layout_width="80dp"
         android:layout_height="40dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="49%"
+        android:layout_marginStart="216dp"
         android:background="@android:color/transparent" />
 
 </RelativeLayout>
