@@ -3,92 +3,45 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Full widget canvas image -->
     <ImageView
         android:id="@+id/widget_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="fitXY" />
 
-    <!-- Invisible tap layer on top, split into 4 quadrant-like zones -->
-    <!-- These are sized by percentage using weights via a nested layout -->
-    <LinearLayout
+    <!-- Tap whole widget to open settings -->
+    <View
+        android:id="@+id/tap_settings"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@android:color/transparent" />
+
+    <!-- Month prev/next: two halves of the bottom-left quadrant area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_alignParentBottom="true"
         android:orientation="horizontal">
 
-        <!-- Globe: left ~39% -->
+        <View android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="39" />
+
         <View
-            android:id="@+id/tap_globe"
+            android:id="@+id/btn_prev_month"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="39"
+            android:layout_weight="15"
             android:background="@android:color/transparent" />
 
-        <!-- Right side: week top + cal/year bottom -->
-        <LinearLayout
+        <View
+            android:id="@+id/btn_next_month"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="61"
-            android:orientation="vertical">
+            android:layout_weight="15"
+            android:background="@android:color/transparent" />
 
-            <!-- Week bar: top ~29% -->
-            <View
-                android:id="@+id/tap_week"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="29"
-                android:background="@android:color/transparent" />
-
-            <!-- Gap -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="3" />
-
-            <!-- Cal + Year: bottom ~68% side by side -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="68"
-                android:orientation="horizontal">
-
-                <!-- Calendar card -->
-                <View
-                    android:id="@+id/tap_cal"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@android:color/transparent" />
-
-                <!-- Year card -->
-                <View
-                    android:id="@+id/tap_year"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@android:color/transparent" />
-            </LinearLayout>
-        </LinearLayout>
+        <View android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="31" />
     </LinearLayout>
-
-    <!-- Month nav overlays on the calendar card area -->
-    <!-- prev: taps left portion of calendar card -->
-    <View
-        android:id="@+id/btn_prev_month"
-        android:layout_width="80dp"
-        android:layout_height="40dp"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="156dp"
-        android:background="@android:color/transparent" />
-
-    <!-- next: taps right portion of calendar card -->
-    <View
-        android:id="@+id/btn_next_month"
-        android:layout_width="80dp"
-        android:layout_height="40dp"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="216dp"
-        android:background="@android:color/transparent" />
 
 </RelativeLayout>

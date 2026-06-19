@@ -7,10 +7,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.SystemClock
 import android.widget.RemoteViews
-import kotlin.math.sin
 
 class ProgressWidgetReceiver : AppWidgetProvider() {
 
@@ -25,24 +23,12 @@ class ProgressWidgetReceiver : AppWidgetProvider() {
         const val KEY_SLEEP_M       = "sleep_m"
         const val KEY_MONTH_OFFSET  = "month_offset"
 
-        fun getPulsePhase(): Float {
-            val sec = (System.currentTimeMillis() / 1000L) % 8L
-            return sec / 8f
-        }
-
-        // Build a launch-app PendingIntent for a card, falling back to settings
-        private fun cardIntent(context: Context, pkg: String, reqCode: Int): PendingIntent {
-            val fallback = Intent(context, SettingsActivity::class.java)
-            val intent = if (pkg.isNotEmpty()) {
-                context.packageManager.getLaunchIntentForPackage(pkg) ?: fallback
-            } else fallback
-            return PendingIntent.getActivity(context, reqCode, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        }
+        fun getPulsePhase(): Float =
+            ((System.currentTimeMillis() / 1000L) % 8L) / 8f
 
         fun updateAllWidgets(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
-            val ids     = manager.getAppWidgetIds(
+            val ids = manager.getAppWidgetIds(
                 ComponentName(context, ProgressWidgetReceiver::class.java))
             if (ids.isEmpty()) return
 
@@ -53,10 +39,6 @@ class ProgressWidgetReceiver : AppWidgetProvider() {
             val sleepM      = prefs.getInt(KEY_SLEEP_M, 0)
             val weekStart   = prefs.getInt(SettingsActivity.KEY_WEEK_START, 1)
             val monthOffset = prefs.getInt(KEY_MONTH_OFFSET, 0)
-            val globePkg    = prefs.getString(SettingsActivity.KEY_GLOBE_PKG, "") ?: ""
-            val weekPkg     = prefs.getString(SettingsActivity.KEY_WEEK_PKG,  "") ?: ""
-            val calPkg      = prefs.getString(SettingsActivity.KEY_CAL_PKG,   "") ?: ""
-            val yearPkg     = prefs.getString(SettingsActivity.KEY_YEAR_PKG,  "") ?: ""
             val density     = context.resources.displayMetrics.density
 
             for (id in ids) {
@@ -74,28 +56,24 @@ class ProgressWidgetReceiver : AppWidgetProvider() {
                 val views = RemoteViews(context.packageName, R.layout.widget_loading)
                 views.setImageViewBitmap(R.id.widget_image, bitmap)
 
-                // Per-card tap targets
-                views.setOnClickPendingIntent(R.id.tap_globe,
-                    cardIntent(context, globePkg, 10))
-                views.setOnClickPendingIntent(R.id.tap_week,
-                    cardIntent(context, weekPkg, 11))
-                views.setOnClickPendingIntent(R.id.tap_cal,
-                    cardIntent(context, calPkg, 12))
-                views.setOnClickPendingIntent(R.id.tap_year,
-                    cardIntent(context, yearPkg, 13))
+                // Whole widget taps → settings
+                val settingsIntent = Intent(context, SettingsActivity::class.java)
+                val settingsPi = PendingIntent.getActivity(context, 0, settingsIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                views.setOnClickPendingIntent(R.id.tap_settings, settingsPi)
 
-                // Month nav buttons
-                val prevIntent = Intent(context, ProgressWidgetReceiver::class.java)
-                    .apply { action = ACTION_PREV_MONTH }
-                views.setOnClickPendingIntent(R.id.btn_prev_month,
-                    PendingIntent.getBroadcast(context, 20, prevIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                // Month nav
+                val prevPi = PendingIntent.getBroadcast(context, 20,
+                    Intent(context, ProgressWidgetReceiver::class.java)
+                        .apply { action = ACTION_PREV_MONTH },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                views.setOnClickPendingIntent(R.id.btn_prev_month, prevPi)
 
-                val nextIntent = Intent(context, ProgressWidgetReceiver::class.java)
-                    .apply { action = ACTION_NEXT_MONTH }
-                views.setOnClickPendingIntent(R.id.btn_next_month,
-                    PendingIntent.getBroadcast(context, 21, nextIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                val nextPi = PendingIntent.getBroadcast(context, 21,
+                    Intent(context, ProgressWidgetReceiver::class.java)
+                        .apply { action = ACTION_NEXT_MONTH },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                views.setOnClickPendingIntent(R.id.btn_next_month, nextPi)
 
                 manager.updateAppWidget(id, views)
             }
@@ -121,7 +99,8 @@ class ProgressWidgetReceiver : AppWidgetProvider() {
     }
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        updateAllWidgets(context); scheduleAlarm(context)
+        updateAllWidgets(context)
+        scheduleAlarm(context)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -129,7 +108,9 @@ class ProgressWidgetReceiver : AppWidgetProvider() {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         when (intent.action) {
             ACTION_PREV_MONTH -> {
-                prefs.edit().putInt(KEY_MONTH_OFFSET, prefs.getInt(KEY_MONTH_OFFSET, 0) - 1).apply()
+                prefs.edit()
+                    .putInt(KEY_MONTH_OFFSET, prefs.getInt(KEY_MONTH_OFFSET, 0) - 1)
+                    .apply()
                 updateAllWidgets(context)
             }
             ACTION_NEXT_MONTH -> {
@@ -145,7 +126,6 @@ class ProgressWidgetReceiver : AppWidgetProvider() {
     override fun onEnabled(context: Context)  { scheduleAlarm(context) }
     override fun onDisabled(context: Context) { cancelAlarm(context) }
     override fun onAppWidgetOptionsChanged(
-        context: Context, manager: AppWidgetManager, id: Int, opts: android.os.Bundle) {
-        updateAllWidgets(context)
-    }
+        context: Context, manager: AppWidgetManager,
+        id: Int, opts: android.os.Bundle) { updateAllWidgets(context) }
 }
