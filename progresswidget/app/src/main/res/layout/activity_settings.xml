@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_width="match_parent" android:layout_height="match_parent"
     android:background="#000000">
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="24dp">
 
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="PROGRESS WIDGET" android:textColor="#ffffff"
@@ -18,8 +14,8 @@
 
         <!-- Wake Time -->
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="WAKE TIME" android:textColor="#777777"
-            android:textSize="11sp" android:letterSpacing="0.15" android:layout_marginBottom="12dp"/>
+            android:text="WAKE TIME" android:textColor="#777777" android:textSize="11sp"
+            android:letterSpacing="0.15" android:layout_marginBottom="12dp"/>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
             <TextView android:layout_width="60dp" android:layout_height="wrap_content"
@@ -47,8 +43,8 @@
 
         <!-- Sleep Time -->
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="SLEEP TIME" android:textColor="#777777"
-            android:textSize="11sp" android:letterSpacing="0.15" android:layout_marginBottom="12dp"/>
+            android:text="SLEEP TIME" android:textColor="#777777" android:textSize="11sp"
+            android:letterSpacing="0.15" android:layout_marginBottom="12dp"/>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
             <TextView android:layout_width="60dp" android:layout_height="wrap_content"
@@ -74,29 +70,83 @@
                 android:textColor="#ffffff" android:textSize="14sp" android:gravity="end"/>
         </LinearLayout>
 
-        <!-- Week Start Day -->
+        <!-- Week Start -->
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="WEEK STARTS ON" android:textColor="#777777"
-            android:textSize="11sp" android:letterSpacing="0.15" android:layout_marginBottom="12dp"/>
+            android:text="WEEK STARTS ON" android:textColor="#777777" android:textSize="11sp"
+            android:letterSpacing="0.15" android:layout_marginBottom="12dp"/>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:layout_marginBottom="32dp">
-            <Button android:id="@+id/btn_week_sun"
-                android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1"
-                android:text="Sunday" android:textColor="#ffffff"
-                android:backgroundTint="#e24b4a" android:textSize="13sp" android:layout_marginEnd="8dp"/>
-            <Button android:id="@+id/btn_week_mon"
-                android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1"
-                android:text="Monday" android:textColor="#ffffff"
-                android:backgroundTint="#333333" android:textSize="13sp"/>
+            <Button android:id="@+id/btn_week_sun" android:layout_width="0dp"
+                android:layout_height="48dp" android:layout_weight="1" android:text="Sunday"
+                android:textColor="#ffffff" android:backgroundTint="#e24b4a"
+                android:textSize="13sp" android:layout_marginEnd="8dp"/>
+            <Button android:id="@+id/btn_week_mon" android:layout_width="0dp"
+                android:layout_height="48dp" android:layout_weight="1" android:text="Monday"
+                android:textColor="#ffffff" android:backgroundTint="#333333" android:textSize="13sp"/>
         </LinearLayout>
 
-        <Button android:id="@+id/save_button"
-            android:layout_width="match_parent" android:layout_height="56dp"
-            android:text="SAVE &amp; UPDATE WIDGET" android:textColor="#ffffff"
-            android:backgroundTint="#e24b4a" android:textSize="13sp" android:letterSpacing="0.1"/>
+        <!-- App Shortcuts -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="CARD SHORTCUTS" android:textColor="#777777" android:textSize="11sp"
+            android:letterSpacing="0.15" android:layout_marginBottom="8dp"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Tap each card to open an app. Leave blank to open widget settings."
+            android:textColor="#555555" android:textSize="11sp" android:layout_marginBottom="16dp"/>
 
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="Widget updates every minute. Changes apply immediately after saving."
+            android:text="Globe card" android:textColor="#aaaaaa" android:textSize="12sp" android:layout_marginBottom="6dp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+            <TextView android:id="@+id/globe_app_name" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Not set" android:textColor="#777777" android:textSize="13sp"/>
+            <Button android:id="@+id/globe_app_pick" android:layout_width="wrap_content"
+                android:layout_height="40dp" android:text="CHOOSE"
+                android:textColor="#ffffff" android:backgroundTint="#333333" android:textSize="11sp"/>
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Week bar card" android:textColor="#aaaaaa" android:textSize="12sp" android:layout_marginBottom="6dp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+            <TextView android:id="@+id/week_app_name" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Not set" android:textColor="#777777" android:textSize="13sp"/>
+            <Button android:id="@+id/week_app_pick" android:layout_width="wrap_content"
+                android:layout_height="40dp" android:text="CHOOSE"
+                android:textColor="#ffffff" android:backgroundTint="#333333" android:textSize="11sp"/>
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Calendar card" android:textColor="#aaaaaa" android:textSize="12sp" android:layout_marginBottom="6dp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+            <TextView android:id="@+id/cal_app_name" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Not set" android:textColor="#777777" android:textSize="13sp"/>
+            <Button android:id="@+id/cal_app_pick" android:layout_width="wrap_content"
+                android:layout_height="40dp" android:text="CHOOSE"
+                android:textColor="#ffffff" android:backgroundTint="#333333" android:textSize="11sp"/>
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Year progress card" android:textColor="#aaaaaa" android:textSize="12sp" android:layout_marginBottom="6dp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="32dp">
+            <TextView android:id="@+id/year_app_name" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Not set" android:textColor="#777777" android:textSize="13sp"/>
+            <Button android:id="@+id/year_app_pick" android:layout_width="wrap_content"
+                android:layout_height="40dp" android:text="CHOOSE"
+                android:textColor="#ffffff" android:backgroundTint="#333333" android:textSize="11sp"/>
+        </LinearLayout>
+
+        <Button android:id="@+id/save_button" android:layout_width="match_parent"
+            android:layout_height="56dp" android:text="SAVE &amp; UPDATE WIDGET"
+            android:textColor="#ffffff" android:backgroundTint="#e24b4a"
+            android:textSize="13sp" android:letterSpacing="0.1"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Widget updates every minute. Tap any card to open its assigned app."
             android:textColor="#555555" android:textSize="11sp" android:layout_marginTop="16dp"/>
     </LinearLayout>
 </ScrollView>

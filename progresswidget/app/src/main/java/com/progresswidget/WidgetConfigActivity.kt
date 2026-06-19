@@ -17,12 +17,13 @@ class WidgetConfigActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         appWidgetId = intent?.extras?.getInt(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
-            AppWidgetManager.INVALID_APPWIDGET_ID) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+            AppWidgetManager.INVALID_APPWIDGET_ID
+        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) { finish(); return }
         setResult(RESULT_CANCELED)
         setContentView(R.layout.activity_settings)
 
-        val prefs      = getSharedPreferences(ProgressWidgetReceiver.PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(ProgressWidgetReceiver.PREFS_NAME, Context.MODE_PRIVATE)
         val wakeHSeek  = findViewById<SeekBar>(R.id.wake_hour_seek)
         val wakeMSeek  = findViewById<SeekBar>(R.id.wake_min_seek)
         val sleepHSeek = findViewById<SeekBar>(R.id.sleep_hour_seek)
@@ -39,7 +40,7 @@ class WidgetConfigActivity : AppCompatActivity() {
         wakeMSeek.progress  = prefs.getInt(ProgressWidgetReceiver.KEY_WAKE_M, 0)
         sleepHSeek.progress = prefs.getInt(ProgressWidgetReceiver.KEY_SLEEP_H, 23)
         sleepMSeek.progress = prefs.getInt(ProgressWidgetReceiver.KEY_SLEEP_M, 0)
-        var weekStart       = prefs.getInt(SettingsActivity.KEY_WEEK_START, 1)
+        var weekStart = prefs.getInt(SettingsActivity.KEY_WEEK_START, 1)
 
         fun fmt(v: Int) = v.toString().padStart(2, '0')
         wakeHVal.text  = fmt(wakeHSeek.progress)
@@ -47,15 +48,15 @@ class WidgetConfigActivity : AppCompatActivity() {
         sleepHVal.text = fmt(sleepHSeek.progress)
         sleepMVal.text = fmt(sleepMSeek.progress)
 
-        fun updateWeekButtons() {
+        fun updateWeekBtns() {
             btnSun.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 if (weekStart == 0) 0xFFE24B4A.toInt() else 0xFF333333.toInt())
             btnMon.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 if (weekStart == 1) 0xFFE24B4A.toInt() else 0xFF333333.toInt())
         }
-        updateWeekButtons()
-        btnSun.setOnClickListener { weekStart = 0; updateWeekButtons() }
-        btnMon.setOnClickListener { weekStart = 1; updateWeekButtons() }
+        updateWeekBtns()
+        btnSun.setOnClickListener { weekStart = 0; updateWeekBtns() }
+        btnMon.setOnClickListener { weekStart = 1; updateWeekBtns() }
 
         fun listener(tv: TextView) = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, v: Int, u: Boolean) { tv.text = fmt(v) }
@@ -79,7 +80,8 @@ class WidgetConfigActivity : AppCompatActivity() {
             ProgressWidgetReceiver.updateAllWidgets(this)
             ProgressWidgetReceiver.scheduleAlarm(this)
             setResult(RESULT_OK, Intent().apply {
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId) })
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            })
             finish()
         }
     }
